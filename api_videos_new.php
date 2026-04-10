@@ -3,8 +3,8 @@ include 'config.php';
 
 header('Content-Type: application/json');
 
-// lấy 10 video mới nhất
-$sql = "SELECT id, title, url 
+// lấy 10 video mới nhất (THÊM thumbnail)
+$sql = "SELECT id, title, url, thumbnail 
         FROM videos 
         ORDER BY id DESC 
         LIMIT 10";

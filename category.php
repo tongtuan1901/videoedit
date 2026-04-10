@@ -1,5 +1,4 @@
 <?php include 'config.php'; ?>
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -9,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
 
 <style>
+*{ box-sizing:border-box; }
+
 body{
     margin:0;
     font-family:Poppins;
@@ -18,45 +19,86 @@ body{
 
 /* HEADER */
 header{
-    height:40vh;
+    height:30vh;
     background:url('https://images.unsplash.com/photo-1524985069026-dd778a71c7b4') center/cover;
     display:flex;
     align-items:center;
     justify-content:center;
+    text-align:center;
+    padding:10px;
 }
 header h1{
     background:rgba(0,0,0,0.6);
-    padding:15px 30px;
+    padding:12px 20px;
+    border-radius:12px;
+    font-size:28px;
+}
+
+/* MOBILE HEADER */
+@media(max-width:600px){
+    header{
+        height:22vh;
+    }
+    header h1{
+        font-size:20px;
+        padding:10px 15px;
+    }
+}
+
+/* BACK BUTTON */
+.back-btn{
+    position:fixed;
+    top:15px;
+    left:15px;
+    z-index:1000;
+}
+.back-btn a{
+    background:rgba(0,0,0,0.5);
+    padding:8px 12px;
     border-radius:10px;
-    font-size:36px;
+    color:white;
+    text-decoration:none;
+    font-size:14px;
+}
+
+/* CONTAINER */
+.container{
+    padding:20px;
 }
 
 /* GRID */
-.container{ padding:30px; }
-
 .grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-    gap:25px;
+    grid-template-columns:repeat(5, 1fr);
+    gap:18px;
+}
+
+@media(max-width:1024px){
+    .grid{ grid-template-columns:repeat(3, 1fr); }
+}
+@media(max-width:600px){
+    .grid{ grid-template-columns:repeat(2, 1fr); gap:12px; }
 }
 
 /* CARD */
 .card{
     position:relative;
-    border-radius:15px;
+    border-radius:16px;
     overflow:hidden;
     background:#0f172a;
-    transition:0.3s;
+    cursor:pointer;
+    transition:0.25s;
+    box-shadow:0 6px 15px rgba(0,0,0,0.3);
 }
 
 .card:hover{
-    transform:scale(1.05);
+    transform:translateY(-5px) scale(1.02);
 }
 
-/* VIDEO */
-video{
+/* THUMBNAIL 16:9 */
+.card img{
     width:100%;
-    height:200px;
+    aspect-ratio:16/9;
     object-fit:cover;
 }
 
@@ -65,70 +107,68 @@ video{
     position:absolute;
     bottom:0;
     width:100%;
-    padding:15px;
-    background:linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    padding:10px;
+    background:linear-gradient(to top, rgba(0,0,0,0.95), transparent);
 }
 
 .overlay h3{
     margin:0;
+    font-size:14px;
+    line-height:1.3;
 }
 
-/* FULLSCREEN BUTTON */
-.controls{
+/* PLAY BUTTON */
+.play-btn{
     position:absolute;
-    bottom:10px;
-    right:10px;
-    opacity:0;
-    transition:0.25s;
-}
-
-.card:hover .controls{
-    opacity:1;
-}
-
-.btn{
-    width:40px;
-    height:40px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:10px;
-    background:rgba(0,0,0,0.5);
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    background:rgba(255,255,255,0.15);
     backdrop-filter:blur(6px);
-    cursor:pointer;
-    transition:0.2s;
+    border:none;
+    color:white;
+    font-size:18px;
+    padding:10px 14px;
+    border-radius:50%;
 }
 
-.btn:hover{
-    background:rgba(255,255,255,0.2);
-    transform:scale(1.1);
-}
-
-.btn svg{
-    width:20px;
-    height:20px;
-    fill:white;
-}
-
-/* TRƯỜNG HỢP 1 VIDEO */
-.grid.single{
-    display:flex;
+/* MODAL */
+#videoModal{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:black;
+    z-index:999;
     justify-content:center;
+    align-items:center;
 }
 
-.grid.single .card{
-    width:600px;
-    max-width:90%;
-    box-shadow:0 20px 50px rgba(0,0,0,0.8);
+/* VIDEO */
+#modalVideo{
+    width:80%;
+    height:80%;
+    border-radius:12px;
 }
 
-.grid.single video{
-    height:350px;
+/* MOBILE VIDEO FULL */
+@media(max-width:600px){
+    #modalVideo{
+        width:100%;
+        height:40%;
+        border-radius:0;
+    }
 }
+
 </style>
-
 </head>
 <body>
+
+<div class="back-btn">
+    <a href="index.php">← Trang chủ</a>
+</div>
 
 <header>
 <h1>🎬 Danh sách video</h1>
@@ -138,39 +178,29 @@ video{
 
 <?php
 $id = intval($_GET['id']);
-$sql = "SELECT * FROM videos WHERE category_id=$id";
+$sql = "SELECT * FROM videos WHERE category_id=$id ORDER BY id DESC";
 $result = $conn->query($sql);
-
-// ✅ đếm sau khi query
-$count = ($result) ? $result->num_rows : 0;
-$gridClass = ($count == 1) ? "grid single" : "grid";
 ?>
 
-<div class="<?= $gridClass ?>">
+<div class="grid">
 
 <?php
 if($result && $result->num_rows > 0){
     while($row = $result->fetch_assoc()){
+
+        $thumb = !empty($row['thumbnail']) 
+            ? $row['thumbnail'] 
+            : "https://via.placeholder.com/400x250?text=No+Thumbnail";
 ?>
 
-<div class="card">
-
-    <video id="video<?= $row['id'] ?>" muted playsinline>
-        <source src="<?= $row['url'] ?>" type="video/mp4">
-    </video>
-
+<div class="card" onclick="openVideo('<?= $row['url'] ?>')">
+    <img src="<?= $thumb ?>">
+    
     <div class="overlay">
         <h3><?= $row['title'] ?></h3>
     </div>
 
-    <div class="controls">
-        <div class="btn" onclick="goFull('video<?= $row['id'] ?>', event)">
-            <svg viewBox="0 0 24 24">
-                <path d="M7 14H5v5h5v-2H7v-3zm12 5h-5v-2h3v-3h2v5zM7 7h3V5H5v5h2V7zm12 3h-2V7h-3V5h5v5z"/>
-            </svg>
-        </div>
-    </div>
-
+    <button class="play-btn">▶</button>
 </div>
 
 <?php 
@@ -183,45 +213,28 @@ if($result && $result->num_rows > 0){
 </div>
 </div>
 
+<!-- MODAL -->
+<div id="videoModal">
+    <iframe id="modalVideo"
+        frameborder="0"
+        allow="autoplay; encrypted-media"
+        allowfullscreen>
+    </iframe>
+</div>
+
 <script>
-// hover preview
-document.querySelectorAll("video").forEach(video => {
-    video.addEventListener("mouseenter", () => video.play());
-    video.addEventListener("mouseleave", () => {
-        video.pause();
-        video.currentTime = 0;
-    });
-});
+function openVideo(url){
+    const modal = document.getElementById("videoModal");
+    const video = document.getElementById("modalVideo");
 
-// fullscreen
-function goFull(id, event){
-    event.stopPropagation();
-
-    const video = document.getElementById(id);
-
-    video.muted = false;
-    video.play();
-
-    if(video.requestFullscreen){
-        video.requestFullscreen();
-    } 
-    else if(video.webkitRequestFullscreen){
-        video.webkitRequestFullscreen();
-    } 
-    else if(video.msRequestFullscreen){
-        video.msRequestFullscreen();
-    }
+    video.src = url + "?autoplay=1";
+    modal.style.display = "flex";
 }
 
-// pause khi thoát fullscreen
-document.addEventListener("fullscreenchange", () => {
-    if(!document.fullscreenElement){
-        document.querySelectorAll("video").forEach(v => {
-            v.pause();
-            v.currentTime = 0;
-        });
-    }
-});
+document.getElementById("videoModal").onclick = function(){
+    this.style.display = "none";
+    document.getElementById("modalVideo").src = "";
+};
 </script>
 
 </body>
